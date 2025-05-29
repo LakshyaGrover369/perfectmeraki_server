@@ -6,6 +6,7 @@ const {
   getAllAdmins,
   deleteAdmin,
 } = require("../controllers/adminController");
+const { protect, authorize } = require("../middleware/auth");
 
 // Routes
 router.get(
@@ -14,13 +15,7 @@ router.get(
   authorize("admin"),
   getAdminDashboardData
 );
-router.post(
-  "/create",
-  protect,
-  authorize("admin"),
-  uploadPhotoMiddleware.none(),
-  createAdmin
-);
+router.post("/create", protect, authorize("admin"), createAdmin);
 router.get("/getAllAdmins", protect, authorize("admin"), getAllAdmins);
 router.delete("/delete/:id", protect, authorize("admin"), deleteAdmin);
 
