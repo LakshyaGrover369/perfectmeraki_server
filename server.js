@@ -40,7 +40,7 @@ app.use("/api/admin", require("./routes/admin"));
 
 // Root route with proper response
 app.get("/", (req, res) => {
-  res.send(`App is running on port ${PORT}`);
+  res.send(`perfect meraki is running on port ${PORT}`);
 });
 
 // Connect to DB and start server
