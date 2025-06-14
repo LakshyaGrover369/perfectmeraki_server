@@ -14,7 +14,7 @@ const allowedOrigins = [];
 if (process.env.NODE_ENV == "production") {
   allowedOrigins.push("https://connect-hq.vercel.app");
 } else {
-  allowedOrigins.push("http://localhost:5173");
+  allowedOrigins.push("http://localhost:3000");
   allowedOrigins.push("http://192.168.0.103:5173");
 }
 

@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const Product = require("../models/Product");
+const mongoose = require("mongoose");
 
 // Get admin dashboard data
 const getAdminDashboardData = async (req, res) => {
@@ -144,9 +146,155 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
+// Create product
+const createProduct = async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      image,
+      type,
+      originalPrice,
+      discountedPrice,
+      category,
+      stock,
+    } = req.body;
+
+    // Validate required fields
+    if (
+      !name ||
+      !description ||
+      !image ||
+      !type ||
+      originalPrice === undefined ||
+      discountedPrice === undefined
+    ) {
+      return res.status(400).json({
+        message:
+          "All required fields (name, description, image, type, originalPrice, discountedPrice) must be provided.",
+      });
+    }
+
+    // Check if product exists
+    const productExists = await Product.findOne({ name });
+    if (productExists) {
+      return res
+        .status(400)
+        .json({ message: "Product already exists with this name" });
+    }
+
+    // Create product
+    const product = await Product.create({
+      name,
+      description,
+      image,
+      type,
+      originalPrice,
+      discountedPrice,
+      category,
+      stock,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: product,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getProductsByType = async (req, res) => {
+  try {
+    const { type } = req.body;
+    let products;
+    if (!type) {
+      products = await Product.find();
+    } else {
+      products = await Product.find({ type: type });
+    }
+    res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Delete product
+const deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Edit product
+const editProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    const updateFields = {};
+
+    const allowedFields = [
+      "image",
+      "name",
+      "type",
+      "description",
+      "originalPrice",
+      "discountedPrice",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updateFields[field] = req.body[field];
+      }
+    });
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: updatedProduct,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getAdminDashboardData,
   createAdmin,
   getAllAdmins,
   deleteAdmin,
+  createProduct,
+  getProductsByType,
+  deleteProduct,
+  editProduct,
 };
