@@ -23,7 +23,7 @@ router.post("/create", protect, authorize("admin"), createAdmin);
 router.get("/getAllAdmins", protect, authorize("admin"), getAllAdmins);
 router.delete("/delete/:id", protect, authorize("admin"), deleteAdmin);
 router.post("/createProduct", protect, authorize("admin"), createProduct);
-router.get(
+router.post(
   "/getProductsByType",
   protect,
   authorize("admin"),
