@@ -43,7 +43,7 @@ router.post(
 router.post(
   "/getProductsByType",
   protect,
-  authorize("admin"),
+  authorize("admin", "user"),
   getProductsByType
 );
 router.delete("/deleteProduct/:id", protect, authorize("admin"), deleteProduct);
