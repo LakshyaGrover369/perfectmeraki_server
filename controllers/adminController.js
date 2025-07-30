@@ -152,7 +152,6 @@ const createProduct = async (req, res) => {
     const {
       name,
       description,
-      image,
       type,
       originalPrice,
       discountedPrice,
@@ -164,7 +163,6 @@ const createProduct = async (req, res) => {
     if (
       !name ||
       !description ||
-      !image ||
       !type ||
       originalPrice === undefined ||
       discountedPrice === undefined
@@ -183,11 +181,13 @@ const createProduct = async (req, res) => {
         .json({ message: "Product already exists with this name" });
     }
 
+    const imageFile = req.file;
+    const imageUrl = imageFile && imageFile.path ? imageFile.path : "";
     // Create product
     const product = await Product.create({
       name,
       description,
-      image,
+      image: imageUrl,
       type,
       originalPrice,
       discountedPrice,
