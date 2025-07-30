@@ -288,6 +288,26 @@ const editProduct = async (req, res) => {
   }
 };
 
+//
+const getWorkshopsByType = async (req, res) => {
+  try {
+    const { type } = req.body;
+    let products;
+    if (!type) {
+      products = await Product.find();
+    } else {
+      products = await Product.find({ type: type });
+    }
+    res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getAdminDashboardData,
   createAdmin,
@@ -297,4 +317,5 @@ module.exports = {
   getProductsByType,
   deleteProduct,
   editProduct,
+  getWorkshopsByType,
 };

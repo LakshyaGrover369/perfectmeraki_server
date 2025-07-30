@@ -9,9 +9,10 @@ const {
   getProductsByType,
   deleteProduct,
   editProduct,
+  getWorkshopsByType,
 } = require("../controllers/adminController");
 const { protect, authorize } = require("../middleware/auth");
-const upload = require("../middleware/uploadPhotoMiddleware");
+const uploadPhotoMiddleware = require("../middleware/uploadPhotoMiddleware");
 
 // Routes
 router.get(
@@ -45,6 +46,12 @@ router.post(
   protect,
   authorize("admin", "user"),
   getProductsByType
+);
+router.post(
+  "/getWorkshopsByType",
+  protect,
+  authorize("admin", "user"),
+  getWorkshopsByType
 );
 router.delete("/deleteProduct/:id", protect, authorize("admin"), deleteProduct);
 router.put("/editProduct/:id", protect, authorize("admin"), editProduct);
