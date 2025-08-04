@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Product = require("../models/Product");
+const Links = require("../models/Links");
 const mongoose = require("mongoose");
 
 // Get admin dashboard data
@@ -288,7 +289,7 @@ const editProduct = async (req, res) => {
   }
 };
 
-//
+// Get workshops by type
 const getWorkshopsByType = async (req, res) => {
   try {
     const { type } = req.body;
@@ -308,6 +309,91 @@ const getWorkshopsByType = async (req, res) => {
   }
 };
 
+// Get links by name (GET version using query params)
+const getLinksByName = async (req, res) => {
+  try {
+    const { name } = req.query; // <-- changed to query
+    let links;
+    if (!name) {
+      links = await Links.find();
+    } else {
+      links = await Links.find({ name: name });
+    }
+    console.log("Links fetched:", links);
+    res.status(200).json({
+      success: true,
+      data: links,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update links by name
+const updateLinksByName = async (req, res) => {
+  try {
+    const { name, link } = req.body;
+
+    // Validate required fields
+    if (!name || !link) {
+      return res.status(400).json({
+        message: "Both name and link are required to update the link.",
+      });
+    }
+
+    const updatedLink = await Links.findOneAndUpdate(
+      { name: name },
+      { link: link },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedLink) {
+      return res.status(404).json({ message: "Link not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: updatedLink,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Create links
+const createLinks = async (req, res) => {
+  try {
+    const { name, link } = req.body;
+
+    // Validate required fields
+    if (!name || !link) {
+      return res.status(400).json({
+        message: "Both name and link are required to create a link.",
+      });
+    }
+
+    // Check if link already exists
+    const existingLink = await Links.findOne({ name });
+    if (existingLink) {
+      return res
+        .status(400)
+        .json({ message: "Link with this name already exists." });
+    }
+
+    const newLink = await Links.create({ name, link });
+
+    res.status(201).json({
+      success: true,
+      data: newLink,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getAdminDashboardData,
   createAdmin,
@@ -318,4 +404,7 @@ module.exports = {
   deleteProduct,
   editProduct,
   getWorkshopsByType,
+  getLinksByName,
+  updateLinksByName,
+  createLinks,
 };
