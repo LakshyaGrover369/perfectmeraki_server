@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const Links = require("../models/Links");
 const Workshop = require("../models/Workshop");
 const mongoose = require("mongoose");
+const cloudinary = require("cloudinary").v2;
 
 // Get admin dashboard data
 const getAdminDashboardData = async (req, res) => {
@@ -418,21 +419,33 @@ const getWorkshopByType = async (req, res) => {
 // Create Workshop
 const createWorkshop = async (req, res) => {
   try {
-    const { image1, image2, image3, name, type, description } = req.body;
+    const { name, type, description } = req.body;
 
-    // Required fields check
-    if (!image1 || !image2 || !image3 || !name || !type || !description) {
-      return res.status(400).json({ message: "All fields are required." });
+    // Required text fields
+    if (!name || !type || !description) {
+      return res
+        .status(400)
+        .json({ message: "Name, type, and description are required." });
     }
 
-    const image1File = req.image1;
-    const image2File = req.image2;
-    const image3File = req.image3;
-    const image1Url = image1File && image1File.path ? image1File.path : "";
-    const image2Url = image2File && image2File.path ? image2File.path : "";
-    const image3Url = image3File && image3File.path ? image3File.path : "";
+    // Required images
+    if (
+      !req.files ||
+      !req.files.image1 ||
+      !req.files.image2 ||
+      !req.files.image3
+    ) {
+      return res
+        .status(400)
+        .json({ message: "All three images are required." });
+    }
 
-    // Enum validation
+    // Extract Cloudinary URLs
+    const image1Url = req.files.image1[0].path;
+    const image2Url = req.files.image2[0].path;
+    const image3Url = req.files.image3[0].path;
+
+    // Validate workshop type
     const WORKSHOP_TYPES = [
       "corperate team building",
       "festival themed",
@@ -451,6 +464,7 @@ const createWorkshop = async (req, res) => {
       });
     }
 
+    // Create and save
     const newWorkshop = new Workshop({
       image1: image1Url,
       image2: image2Url,
@@ -471,9 +485,15 @@ const createWorkshop = async (req, res) => {
 const updateWorkshop = async (req, res) => {
   try {
     const { id } = req.params;
-    const { image1, image2, image3, name, type, description } = req.body;
+    const { name, type, description } = req.body;
 
-    // Enum validation if type is provided
+    // Find existing workshop
+    const existingWorkshop = await Workshop.findById(id);
+    if (!existingWorkshop) {
+      return res.status(404).json({ message: "Workshop not found" });
+    }
+
+    // Validate type if provided
     const WORKSHOP_TYPES = [
       "corperate team building",
       "festival themed",
@@ -483,7 +503,6 @@ const updateWorkshop = async (req, res) => {
       "mandala",
       "nameplate",
     ];
-
     if (type && !WORKSHOP_TYPES.includes(type)) {
       return res.status(400).json({
         message: `Invalid workshop type. Allowed types: ${WORKSHOP_TYPES.join(
@@ -492,24 +511,88 @@ const updateWorkshop = async (req, res) => {
       });
     }
 
-    const updatedWorkshop = await Workshop.findByIdAndUpdate(
-      id,
-      {
-        ...(image1 && { image1 }),
-        ...(image2 && { image2 }),
-        ...(image3 && { image3 }),
-        ...(name && { name: name.trim() }),
-        ...(type && { type }),
-        ...(description && { description: description.trim() }),
-      },
-      { new: true, runValidators: true }
-    );
+    // Prepare update object
+    const updatedData = {
+      name: name ? name.trim() : existingWorkshop.name,
+      type: type || existingWorkshop.type,
+      description: description
+        ? description.trim()
+        : existingWorkshop.description,
+      image1: existingWorkshop.image1,
+      image2: existingWorkshop.image2,
+      image3: existingWorkshop.image3,
+    };
 
-    if (!updatedWorkshop) {
+    // Replace images if new ones are uploaded
+    if (req.files.image1) {
+      if (existingWorkshop.image1) {
+        const publicId = existingWorkshop.image1.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(`ProductsPhotos/${publicId}`);
+      }
+      updatedData.image1 = req.files.image1[0].path;
+    }
+    if (req.files.image2) {
+      if (existingWorkshop.image2) {
+        const publicId = existingWorkshop.image2.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(`ProductsPhotos/${publicId}`);
+      }
+      updatedData.image2 = req.files.image2[0].path;
+    }
+    if (req.files.image3) {
+      if (existingWorkshop.image3) {
+        const publicId = existingWorkshop.image3.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(`ProductsPhotos/${publicId}`);
+      }
+      updatedData.image3 = req.files.image3[0].path;
+    }
+
+    // Save update
+    const updatedWorkshop = await Workshop.findByIdAndUpdate(id, updatedData, {
+      new: true,
+    });
+    res.status(200).json(updatedWorkshop);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+// Delete Workshop
+const deleteWorkshop = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find workshop
+    const existingWorkshop = await Workshop.findById(id);
+    if (!existingWorkshop) {
       return res.status(404).json({ message: "Workshop not found" });
     }
 
-    res.status(200).json(updatedWorkshop);
+    // Helper function to extract public_id from Cloudinary URL
+    const getPublicId = (url) => {
+      if (!url) return null;
+      const parts = url.split("/");
+      const filename = parts.pop();
+      const publicId = filename.split(".")[0];
+      return `${parts
+        .slice(parts.indexOf("ProductsPhotos"))
+        .join("/")}/${publicId}`;
+    };
+
+    // Delete images from Cloudinary
+    if (existingWorkshop.image1) {
+      await cloudinary.uploader.destroy(getPublicId(existingWorkshop.image1));
+    }
+    if (existingWorkshop.image2) {
+      await cloudinary.uploader.destroy(getPublicId(existingWorkshop.image2));
+    }
+    if (existingWorkshop.image3) {
+      await cloudinary.uploader.destroy(getPublicId(existingWorkshop.image3));
+    }
+
+    // Delete workshop from DB
+    await Workshop.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Workshop deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
@@ -531,4 +614,5 @@ module.exports = {
   getWorkshopByType,
   createWorkshop,
   updateWorkshop,
+  deleteWorkshop,
 };

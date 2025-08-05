@@ -16,6 +16,7 @@ const {
   getWorkshopByType,
   createWorkshop,
   updateWorkshop,
+  deleteWorkshop,
 } = require("../controllers/adminController");
 const { protect, authorize } = require("../middleware/auth");
 const uploadPhotoMiddleware = require("../middleware/uploadPhotoMiddleware");
@@ -69,53 +70,39 @@ router.put(
   authorize("admin"),
   updateLinksByName
 );
-
 router.get(
   "/getWorkshopByType",
   protect,
   authorize("admin", "user"),
   getWorkshopByType
 );
-
 router.post(
   "/createWorkshop",
   protect,
   authorize("admin"),
-  (req, res, next) => {
-    uploadPhotoMiddleware.single("image1")(req, res, function (err) {
-      if (err) {
-        console.error("Multer error:", err.message);
-        return res.status(400).json({ message: err.message });
-      } else {
-        console.log("Multer success:", req.file); // Log the file information
-      }
-      next();
-    });
-  },
-  (req, res, next) => {
-    uploadPhotoMiddleware.single("image2")(req, res, function (err) {
-      if (err) {
-        console.error("Multer error:", err.message);
-        return res.status(400).json({ message: err.message });
-      } else {
-        console.log("Multer success:", req.file); // Log the file information
-      }
-      next();
-    });
-  },
-  (req, res, next) => {
-    uploadPhotoMiddleware.single("image3")(req, res, function (err) {
-      if (err) {
-        console.error("Multer error:", err.message);
-        return res.status(400).json({ message: err.message });
-      } else {
-        console.log("Multer success:", req.file); // Log the file information
-      }
-      next();
-    });
-  },
+  uploadPhotoMiddleware.fields([
+    { name: "image1", maxCount: 1 },
+    { name: "image2", maxCount: 1 },
+    { name: "image3", maxCount: 1 },
+  ]),
   createWorkshop
 );
-router.put("/updateWorkshop", protect, authorize("admin"), updateWorkshop);
+router.put(
+  "/updateWorkshop/:id",
+  protect,
+  authorize("admin"),
+  uploadPhotoMiddleware.fields([
+    { name: "image1", maxCount: 1 },
+    { name: "image2", maxCount: 1 },
+    { name: "image3", maxCount: 1 },
+  ]),
+  updateWorkshop
+);
+router.delete(
+  "/deleteWorkshop/:id",
+  protect,
+  authorize("admin"),
+  deleteWorkshop
+);
 
 module.exports = router;
