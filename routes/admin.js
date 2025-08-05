@@ -13,6 +13,9 @@ const {
   getLinksByName,
   createLinks,
   updateLinksByName,
+  getWorkshopByType,
+  createWorkshop,
+  updateWorkshop,
 } = require("../controllers/adminController");
 const { protect, authorize } = require("../middleware/auth");
 const uploadPhotoMiddleware = require("../middleware/uploadPhotoMiddleware");
@@ -66,5 +69,53 @@ router.put(
   authorize("admin"),
   updateLinksByName
 );
+
+router.get(
+  "/getWorkshopByType",
+  protect,
+  authorize("admin", "user"),
+  getWorkshopByType
+);
+
+router.post(
+  "/createWorkshop",
+  protect,
+  authorize("admin"),
+  (req, res, next) => {
+    uploadPhotoMiddleware.single("image1")(req, res, function (err) {
+      if (err) {
+        console.error("Multer error:", err.message);
+        return res.status(400).json({ message: err.message });
+      } else {
+        console.log("Multer success:", req.file); // Log the file information
+      }
+      next();
+    });
+  },
+  (req, res, next) => {
+    uploadPhotoMiddleware.single("image2")(req, res, function (err) {
+      if (err) {
+        console.error("Multer error:", err.message);
+        return res.status(400).json({ message: err.message });
+      } else {
+        console.log("Multer success:", req.file); // Log the file information
+      }
+      next();
+    });
+  },
+  (req, res, next) => {
+    uploadPhotoMiddleware.single("image3")(req, res, function (err) {
+      if (err) {
+        console.error("Multer error:", err.message);
+        return res.status(400).json({ message: err.message });
+      } else {
+        console.log("Multer success:", req.file); // Log the file information
+      }
+      next();
+    });
+  },
+  createWorkshop
+);
+router.put("/updateWorkshop", protect, authorize("admin"), updateWorkshop);
 
 module.exports = router;

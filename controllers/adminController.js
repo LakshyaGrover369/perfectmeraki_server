@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Product = require("../models/Product");
 const Links = require("../models/Links");
+const Workshop = require("../models/Workshop");
 const mongoose = require("mongoose");
 
 // Get admin dashboard data
@@ -394,6 +395,126 @@ const createLinks = async (req, res) => {
   }
 };
 
+// Get workshop by name
+const getWorkshopByType = async (req, res) => {
+  try {
+    const { type } = req.query; // Use query params for type
+    let workshops;
+    if (!type) {
+      workshops = await Workshop.find();
+    } else {
+      workshops = await Workshop.find({ type: type });
+    }
+    res.status(200).json({
+      success: true,
+      data: workshops,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Create Workshop
+const createWorkshop = async (req, res) => {
+  try {
+    const { image1, image2, image3, name, type, description } = req.body;
+
+    // Required fields check
+    if (!image1 || !image2 || !image3 || !name || !type || !description) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const image1File = req.image1;
+    const image2File = req.image2;
+    const image3File = req.image3;
+    const image1Url = image1File && image1File.path ? image1File.path : "";
+    const image2Url = image2File && image2File.path ? image2File.path : "";
+    const image3Url = image3File && image3File.path ? image3File.path : "";
+
+    // Enum validation
+    const WORKSHOP_TYPES = [
+      "corperate team building",
+      "festival themed",
+      "fridge magnets",
+      "kids",
+      "lipan art",
+      "mandala",
+      "nameplate",
+    ];
+
+    if (!WORKSHOP_TYPES.includes(type)) {
+      return res.status(400).json({
+        message: `Invalid workshop type. Allowed types: ${WORKSHOP_TYPES.join(
+          ", "
+        )}`,
+      });
+    }
+
+    const newWorkshop = new Workshop({
+      image1: image1Url,
+      image2: image2Url,
+      image3: image3Url,
+      name: name.trim(),
+      type,
+      description: description.trim(),
+    });
+
+    const savedWorkshop = await newWorkshop.save();
+    res.status(201).json(savedWorkshop);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+// Update Workshop by ID without image
+const updateWorkshop = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { image1, image2, image3, name, type, description } = req.body;
+
+    // Enum validation if type is provided
+    const WORKSHOP_TYPES = [
+      "corperate team building",
+      "festival themed",
+      "fridge magnets",
+      "kids",
+      "lipan art",
+      "mandala",
+      "nameplate",
+    ];
+
+    if (type && !WORKSHOP_TYPES.includes(type)) {
+      return res.status(400).json({
+        message: `Invalid workshop type. Allowed types: ${WORKSHOP_TYPES.join(
+          ", "
+        )}`,
+      });
+    }
+
+    const updatedWorkshop = await Workshop.findByIdAndUpdate(
+      id,
+      {
+        ...(image1 && { image1 }),
+        ...(image2 && { image2 }),
+        ...(image3 && { image3 }),
+        ...(name && { name: name.trim() }),
+        ...(type && { type }),
+        ...(description && { description: description.trim() }),
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedWorkshop) {
+      return res.status(404).json({ message: "Workshop not found" });
+    }
+
+    res.status(200).json(updatedWorkshop);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
 module.exports = {
   getAdminDashboardData,
   createAdmin,
@@ -407,4 +528,7 @@ module.exports = {
   getLinksByName,
   updateLinksByName,
   createLinks,
+  getWorkshopByType,
+  createWorkshop,
+  updateWorkshop,
 };
