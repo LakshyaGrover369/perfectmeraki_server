@@ -54,12 +54,7 @@ router.post(
   authorize("admin", "user"),
   getProductsByType
 );
-router.post(
-  "/getWorkshopsByType",
-  protect,
-  authorize("admin", "user"),
-  getWorkshopsByType
-);
+
 router.delete("/deleteProduct/:id", protect, authorize("admin"), deleteProduct);
 router.put("/editProduct/:id", protect, authorize("admin"), editProduct);
 router.get("/getLinksByName", protect, authorize("admin"), getLinksByName);
